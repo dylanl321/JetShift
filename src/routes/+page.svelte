@@ -53,9 +53,9 @@
 			with precision timing
 		</h1>
 		<p class="text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-			JetShift generates a personalized circadian rhythm adjustment plan based on your flight,
-			sleep schedule, and the latest chronobiology research. Know exactly when to seek light,
-			sleep, take caffeine, and use melatonin.
+			JetShift builds a hyper-personalized circadian adjustment plan from your exact flight,
+			chronotype, age, sleep pattern and caffeine habits. Pick your route on the map or by flight
+			number, plan round trips, and get reminders for light, sleep, caffeine and melatonin timing.
 		</p>
 
 		<a href="/plan" class="inline-flex items-center gap-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 transition-colors px-8 py-4 text-lg font-bold text-white shadow-lg shadow-indigo-900/40">
@@ -105,10 +105,10 @@
 		<h2 class="text-3xl font-bold text-center mb-10">How it works</h2>
 		<ol class="space-y-6">
 			{#each [
-				['Enter your trip', 'Departure and arrival cities, date/time, and your usual sleep schedule.'],
-				['Algorithm runs', 'We calculate your CBTmin (core body temperature minimum) and generate a multi-day adaptation plan.'],
-				['Follow your timeline', 'A colour-coded day-by-day timeline tells you exactly what to do and when.'],
-				['Save &amp; revisit', 'Your plan is saved so you can check it anytime during your trip.']
+				['Enter your trip', 'Pick cities on the map or type a flight number. Add a return date for round trips, plus your sleep, chronotype, age and caffeine habits.'],
+				['Algorithm runs', 'We estimate your CBTmin and choose the easier route (advance vs delay) to shift your clock, personalized to you.'],
+				['Follow your timeline', 'A colour-coded day-by-day timeline shows exactly when to seek light, sleep, cut caffeine and take melatonin — in the right timezone.'],
+				['Get reminders', 'Enable browser alerts or add the plan to your calendar so every window pings you at the right moment.']
 			] as [title, desc], i}
 				<li class="flex gap-5 items-start">
 					<span class="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-900 border border-indigo-700 flex items-center justify-center font-bold text-indigo-300 text-lg">{i + 1}</span>

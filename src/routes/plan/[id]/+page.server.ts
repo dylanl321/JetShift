@@ -1,71 +1,81 @@
 import { error } from '@sveltejs/kit';
-import { deserializePlan, generatePlan, serializePlan } from '$lib/circadian.js';
+import {
+	deserializeItinerary,
+	generateItinerary,
+	type Itinerary,
+	type CircadianPlan
+} from '$lib/circadian.js';
 import type { PageServerLoad } from './$types.js';
+
+interface TripRow {
+	id: string;
+	departure_tz: string;
+	arrival_tz: string;
+	departure_datetime: string;
+	return_datetime: string | null;
+	flight_number: string | null;
+	typical_sleep_start: string;
+	typical_sleep_end: string;
+	age: number | null;
+	chronotype: string | null;
+	caffeine: string | null;
+	uses_melatonin: number | null;
+	plan_json: string;
+	created_at: string;
+}
+
+/** Accept either a stored Itinerary or a legacy bare CircadianPlan. */
+function normalizeItinerary(json: string): Itinerary {
+	const parsed = JSON.parse(json);
+	if (parsed && typeof parsed === 'object' && 'outbound' in parsed) {
+		return deserializeItinerary(json);
+	}
+	return { version: 1, roundTrip: false, outbound: parsed as CircadianPlan, return: null };
+}
 
 export const load: PageServerLoad = async ({ params, platform }) => {
 	const db = platform?.env?.DB ?? null;
-	const { id } = params;
-
 	if (!db) {
-		error(503, 'Database not available in this environment. Deploy to Cloudflare Pages to use this feature.');
+		error(503, 'Database not available in this environment. Deploy to Cloudflare to use this feature.');
 	}
 
-	let row: {
-		id: string;
-		departure_tz: string;
-		arrival_tz: string;
-		departure_datetime: string;
-		typical_sleep_start: string;
-		typical_sleep_end: string;
-		plan_json: string;
-		created_at: string;
-	} | null = null;
-
+	let row: TripRow | null = null;
 	try {
-		row = await db
-			.prepare('SELECT * FROM trips WHERE id = ?')
-			.bind(id)
-			.first();
+		row = await db.prepare('SELECT * FROM trips WHERE id = ?').bind(params.id).first<TripRow>();
 	} catch {
 		error(500, 'Failed to load plan from database.');
 	}
-
 	if (!row) {
 		error(404, 'Plan not found. It may have expired or the link is incorrect.');
 	}
 
-	// If plan_json is present, use it directly; otherwise regenerate
-	let plan;
-	if (row.plan_json) {
-		try {
-			plan = deserializePlan(row.plan_json);
-		} catch {
-			plan = generatePlan(
-				row.departure_tz,
-				row.arrival_tz,
-				row.departure_datetime,
-				row.typical_sleep_start,
-				row.typical_sleep_end
-			);
-		}
-	} else {
-		plan = generatePlan(
-			row.departure_tz,
-			row.arrival_tz,
-			row.departure_datetime,
-			row.typical_sleep_start,
-			row.typical_sleep_end
+	let itinerary: Itinerary;
+	try {
+		itinerary = normalizeItinerary(row.plan_json);
+	} catch {
+		// Regenerate from stored inputs as a fallback.
+		itinerary = generateItinerary(
+			{
+				departureTz: row.departure_tz,
+				arrivalTz: row.arrival_tz,
+				departureDatetime: row.departure_datetime,
+				sleepStart: row.typical_sleep_start,
+				sleepEnd: row.typical_sleep_end,
+				age: row.age ?? undefined,
+				chronotype: (row.chronotype as never) ?? undefined,
+				caffeine: (row.caffeine as never) ?? undefined,
+				usesMelatonin: row.uses_melatonin == null ? true : row.uses_melatonin === 1
+			},
+			row.return_datetime
 		);
 	}
 
 	return {
 		id: row.id,
 		createdAt: row.created_at,
-		departureTz: row.departure_tz,
-		arrivalTz: row.arrival_tz,
 		departureDatetime: row.departure_datetime,
-		sleepStart: row.typical_sleep_start,
-		sleepEnd: row.typical_sleep_end,
-		plan
+		returnDatetime: row.return_datetime,
+		flightNumber: row.flight_number,
+		itinerary
 	};
 };

@@ -8,6 +8,8 @@ declare global {
 		interface Platform {
 			env: {
 				DB: D1Database;
+				/** Optional AviationStack API key enabling live flight-number lookup. */
+				FLIGHT_API_KEY?: string;
 			};
 			context: {
 				waitUntil(promise: Promise<unknown>): void;
