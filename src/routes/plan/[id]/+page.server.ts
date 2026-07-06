@@ -1,9 +1,8 @@
 import { error } from '@sveltejs/kit';
 import {
-	deserializeItinerary,
 	generateItinerary,
-	type Itinerary,
-	type CircadianPlan
+	normalizeStoredItinerary,
+	type Itinerary
 } from '$lib/circadian.js';
 import type { PageServerLoad } from './$types.js';
 
@@ -24,15 +23,6 @@ interface TripRow {
 	created_at: string;
 }
 
-/** Accept either a stored Itinerary or a legacy bare CircadianPlan. */
-function normalizeItinerary(json: string): Itinerary {
-	const parsed = JSON.parse(json);
-	if (parsed && typeof parsed === 'object' && 'outbound' in parsed) {
-		return deserializeItinerary(json);
-	}
-	return { version: 1, roundTrip: false, outbound: parsed as CircadianPlan, return: null };
-}
-
 export const load: PageServerLoad = async ({ params, platform }) => {
 	const db = platform?.env?.DB ?? null;
 	if (!db) {
@@ -51,7 +41,7 @@ export const load: PageServerLoad = async ({ params, platform }) => {
 
 	let itinerary: Itinerary;
 	try {
-		itinerary = normalizeItinerary(row.plan_json);
+		itinerary = normalizeStoredItinerary(row.plan_json);
 	} catch {
 		// Regenerate from stored inputs as a fallback.
 		itinerary = generateItinerary(

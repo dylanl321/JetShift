@@ -151,30 +151,30 @@
 						{#if data.flightNumber} · Flight {data.flightNumber}{/if}
 					</p>
 				</div>
-				<div class="flex gap-3 flex-wrap">
-					<div class="rounded-xl bg-slate-800 px-4 py-2 text-center">
+				<div class="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto">
+					<div class="rounded-xl bg-slate-800 px-2 sm:px-4 py-2 text-center">
 						<div class="text-xs text-slate-400 mb-0.5">Time diff</div>
-						<div class="font-bold text-lg text-indigo-300">{sign(plan.tzDiffHours)}h</div>
+						<div class="font-bold text-base sm:text-lg text-indigo-300">{sign(plan.tzDiffHours)}h</div>
 					</div>
-					<div class="rounded-xl bg-slate-800 px-4 py-2 text-center">
+					<div class="rounded-xl bg-slate-800 px-2 sm:px-4 py-2 text-center">
 						<div class="text-xs text-slate-400 mb-0.5">Strategy</div>
-						<div class="font-bold text-lg {plan.mode === 'advance' ? 'text-yellow-400' : plan.mode === 'delay' ? 'text-blue-400' : 'text-slate-400'}">
+						<div class="font-bold text-base sm:text-lg {plan.mode === 'advance' ? 'text-yellow-400' : plan.mode === 'delay' ? 'text-blue-400' : 'text-slate-400'}">
 							{plan.mode === 'advance' ? 'Advance ⏪' : plan.mode === 'delay' ? 'Delay ⏩' : 'No shift'}
 						</div>
 					</div>
-					<div class="rounded-xl bg-slate-800 px-4 py-2 text-center">
+					<div class="rounded-xl bg-slate-800 px-2 sm:px-4 py-2 text-center">
 						<div class="text-xs text-slate-400 mb-0.5">Adapt in</div>
-						<div class="font-bold text-lg text-slate-200">{plan.adjustmentDays || 0}d</div>
+						<div class="font-bold text-base sm:text-lg text-slate-200">{plan.adjustmentDays || 0}d</div>
 					</div>
 				</div>
 			</div>
 
 			<!-- Leg switcher -->
 			{#if legs.length > 1}
-				<div class="flex gap-2 mt-4">
+				<div class="flex flex-col sm:flex-row gap-2 mt-4">
 					{#each legs as leg, i}
 						<button
-							class="rounded-lg px-4 py-1.5 text-sm font-medium border transition-colors
+							class="rounded-lg px-4 py-2.5 min-h-[44px] text-sm font-medium border transition-colors text-left sm:text-center truncate
 								{activeLeg === i ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'}"
 							on:click={() => { activeLeg = i; activeDay = defaultDayIndex(leg.plan); }}
 						>
@@ -185,46 +185,58 @@
 			{/if}
 		</div>
 
-		<!-- Notifications card -->
+		<!-- Reminders & export card -->
 		<div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 mb-6">
-			<div class="flex flex-wrap items-center justify-between gap-4">
+			<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 				<div>
-					<h3 class="font-semibold text-slate-200 flex items-center gap-2">🔔 Reminders</h3>
+					<h3 class="font-semibold text-slate-200 flex items-center gap-2">🔔 Reminders & export</h3>
 					<p class="text-sm text-slate-400 mt-0.5">
-						Get nudged at each light, sleep, caffeine and melatonin window.
+						Get nudged at each light, sleep, caffeine and melatonin window — or take the plan with you.
 					</p>
 					{#if statusMsg}<p class="text-xs mt-1 {perm === 'denied' ? 'text-amber-400' : 'text-emerald-400'}">{statusMsg}</p>{/if}
 				</div>
-				<div class="flex gap-2 flex-wrap">
+				<div class="grid grid-cols-2 sm:flex gap-2 shrink-0">
 					{#if notifSupported && perm !== 'granted'}
 						<button type="button" on:click={enableNotifications}
-							class="rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-sm font-semibold text-white">
-							Enable browser alerts
+							class="col-span-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-4 py-2 min-h-[44px] text-sm font-semibold text-white">
+							🔔 Enable alerts
 						</button>
 					{:else if perm === 'granted'}
 						<button type="button" on:click={() => { testNotification(); refreshSchedule(); }}
-							class="rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 text-sm font-semibold text-white">
+							class="col-span-2 rounded-lg bg-slate-700 hover:bg-slate-600 px-4 py-2 min-h-[44px] text-sm font-semibold text-white">
 							✓ Alerts on · test
 						</button>
 					{/if}
 					<a href="/plan/{data.id}/calendar.ics"
-						class="rounded-lg border border-slate-700 hover:border-slate-500 text-slate-200 px-4 py-2 text-sm font-semibold">
-						📅 Add to calendar
+						class="rounded-lg border border-slate-700 hover:border-slate-500 text-slate-200 px-4 py-2 min-h-[44px] text-sm font-semibold flex items-center justify-center gap-1.5">
+						📅 Calendar
+					</a>
+					<a href="/plan/{data.id}/print"
+						class="rounded-lg border border-slate-700 hover:border-slate-500 text-slate-200 px-4 py-2 min-h-[44px] text-sm font-semibold flex items-center justify-center gap-1.5">
+						🖨️ Print / PDF
+					</a>
+					<a href="/plan/{data.id}/export.csv" download
+						class="rounded-lg border border-slate-700 hover:border-slate-500 text-slate-200 px-4 py-2 min-h-[44px] text-sm font-semibold flex items-center justify-center gap-1.5">
+						⬇ CSV
+					</a>
+					<a href="/plan/{data.id}/export.json" download
+						class="rounded-lg border border-slate-700 hover:border-slate-500 text-slate-200 px-4 py-2 min-h-[44px] text-sm font-semibold flex items-center justify-center gap-1.5">
+						⬇ JSON
 					</a>
 				</div>
 			</div>
 			{#if !notifSupported}
-				<p class="text-xs text-slate-500 mt-2">Browser alerts aren't supported here — use “Add to calendar” for reliable reminders on any device.</p>
+				<p class="text-xs text-slate-500 mt-2">Browser alerts aren't supported here — the calendar export gives reliable reminders on any device.</p>
 			{:else}
-				<p class="text-xs text-slate-500 mt-2">Browser alerts fire while this tab is open. For background reminders across devices, use “Add to calendar”.</p>
+				<p class="text-xs text-slate-500 mt-2">Browser alerts fire while this tab is open. For background reminders across devices, use the calendar export.</p>
 			{/if}
 		</div>
 
-		<!-- Day tabs -->
-		<div class="flex gap-2 flex-wrap mb-6">
+		<!-- Day tabs: one scrollable row on mobile, wrapped on desktop -->
+		<div class="flex gap-2 mb-6 overflow-x-auto sm:flex-wrap pb-1.5 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x">
 			{#each plan.days as day, i}
 				<button
-					class="rounded-lg px-3 py-1.5 text-sm font-medium transition-colors border
+					class="shrink-0 snap-start rounded-lg px-3 py-2 min-h-[44px] text-sm font-medium transition-colors border
 						{activeDay === i ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'}"
 					on:click={() => (activeDay = i)}
 				>
@@ -258,7 +270,9 @@
 					</div>
 					<div class="flex mb-1 select-none">
 						{#each Array(13) as _, i}
-							<div class="flex-1 text-xs text-slate-600 text-center">{i * 2 === 0 ? '12a' : i * 2 === 12 ? '12p' : i * 2 < 12 ? `${i*2}a` : `${i*2-12}p`}</div>
+							<div class="flex-1 text-[10px] sm:text-xs text-slate-600 text-center {i % 2 === 1 ? 'invisible sm:visible' : ''}">
+								{i * 2 === 0 ? '12a' : i * 2 === 12 ? '12p' : i * 2 < 12 ? `${i*2}a` : `${i*2-12}p`}
+							</div>
 						{/each}
 					</div>
 					{#each layers as layer}
@@ -276,7 +290,7 @@
 									{@const startPct = ((layer.win.startMinutes % 1440 + 1440) % 1440) / 1440 * 100}
 									{@const endPct = ((layer.win.endMinutes % 1440 + 1440) % 1440) / 1440 * 100}
 									{#if endPct - startPct > 8}
-										<div class="absolute top-0 bottom-0 flex items-center px-1.5 text-xs font-mono pointer-events-none whitespace-nowrap overflow-hidden"
+										<div class="absolute top-0 bottom-0 hidden sm:flex items-center px-1.5 text-xs font-mono pointer-events-none whitespace-nowrap overflow-hidden"
 											style="left:{startPct}%;width:{endPct-startPct}%;color:{layer.textColor};">
 											{fmt(layer.win.startMinutes)}–{fmt(layer.win.endMinutes)}
 										</div>

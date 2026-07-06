@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import WorldMap from './WorldMap.svelte';
 	import { AIRPORTS, searchAirports, findAirport, type Airport } from './airports.js';
+	import { getCurrentOffsetMinutes } from './timezones.js';
 
 	export let airports: Airport[] = AIRPORTS;
 
@@ -31,6 +33,25 @@
 	let roundTrip = !!initialReturnDatetime;
 	let returnDatetime = initialReturnDatetime;
 
+	onMount(() => {
+		// Ease of use: preselect "From" from the visitor's own timezone, and suggest a departure
+		// a week out, unless the form already carries values (e.g. after a validation error).
+		if (!from) {
+			try {
+				const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+				const a = airports.find((x) => x.tz === tz);
+				if (a) pick('departure', a, { advance: false });
+			} catch {
+				/* no auto-detect */
+			}
+		}
+		if (!departureDatetime) {
+			const d = new Date(Date.now() + 7 * 86400000);
+			const p = (n: number) => String(n).padStart(2, '0');
+			departureDatetime = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T09:00`;
+		}
+	});
+
 	// Airport search boxes.
 	let fromQuery = from?.city ?? '';
 	let toQuery = to?.city ?? '';
@@ -47,18 +68,18 @@
 		toResults = searchAirports(toQuery);
 		toOpen = toResults.length > 0;
 	}
-	function pick(role: 'departure' | 'arrival', a: Airport) {
+	function pick(role: 'departure' | 'arrival', a: Airport, opts: { advance?: boolean } = {}) {
 		const ep: Endpoint = { iata: a.iata, city: a.city, tz: a.tz };
 		if (role === 'departure') {
 			from = ep;
 			fromQuery = `${a.city} (${a.iata})`;
 			fromOpen = false;
-			selecting = 'arrival';
+			// After setting departure, the natural next step is arrival.
+			if (opts.advance !== false) selecting = 'arrival';
 		} else {
 			to = ep;
 			toQuery = `${a.city} (${a.iata})`;
 			toOpen = false;
-			selecting = 'departure';
 		}
 	}
 	function onMapSelect(e: CustomEvent<{ iata: string; role: 'departure' | 'arrival' }>) {
@@ -108,6 +129,21 @@
 
 	$: mapDeparture = from?.iata ?? null;
 	$: mapArrival = to?.iata ?? null;
+
+	// Live route summary so travellers immediately see what they're up against.
+	$: routeSummary = (() => {
+		if (!from || !to) return null;
+		try {
+			const ref = departureDatetime ? new Date(departureDatetime) : new Date();
+			const diffH = (getCurrentOffsetMinutes(to.tz, ref) - getCurrentOffsetMinutes(from.tz, ref)) / 60;
+			if (Math.abs(diffH) < 1) return `${to.city} is on nearly the same clock as ${from.city} — minimal jet lag.`;
+			const dir = diffH > 0 ? 'ahead' : 'behind';
+			const h = Math.abs(diffH) % 1 === 0 ? Math.abs(diffH).toFixed(0) : Math.abs(diffH).toFixed(1);
+			return `${to.city} is ${h}h ${dir} of ${from.city} (${diffH > 0 ? 'eastward' : 'westward'} trip).`;
+		} catch {
+			return null;
+		}
+	})();
 </script>
 
 <!-- Hidden inputs consumed by the form POST -->
@@ -163,7 +199,7 @@
 				<ul class="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-lg bg-slate-800 border border-slate-700 shadow-xl">
 					{#each fromResults as a}
 						<li>
-							<button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-slate-700" on:click={() => pick('departure', a)}>
+							<button type="button" class="w-full text-left px-3 py-2.5 min-h-[44px] text-sm hover:bg-slate-700" on:click={() => pick('departure', a)}>
 								<span class="font-mono text-cyan-300">{a.iata}</span> · {a.city}, {a.country}
 							</button>
 						</li>
@@ -173,7 +209,7 @@
 		</div>
 
 		<button type="button" on:click={swap} title="Swap" aria-label="Swap from and to"
-			class="justify-self-center rounded-lg border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white h-10 w-10 flex items-center justify-center mb-0.5">
+			class="justify-self-center rounded-lg border border-slate-700 hover:border-slate-500 text-slate-400 hover:text-white h-11 w-11 flex items-center justify-center mb-0.5">
 			⇄
 		</button>
 
@@ -193,7 +229,7 @@
 				<ul class="absolute z-20 mt-1 w-full max-h-56 overflow-auto rounded-lg bg-slate-800 border border-slate-700 shadow-xl">
 					{#each toResults as a}
 						<li>
-							<button type="button" class="w-full text-left px-3 py-2 text-sm hover:bg-slate-700" on:click={() => pick('arrival', a)}>
+							<button type="button" class="w-full text-left px-3 py-2.5 min-h-[44px] text-sm hover:bg-slate-700" on:click={() => pick('arrival', a)}>
 								<span class="font-mono text-pink-300">{a.iata}</span> · {a.city}, {a.country}
 							</button>
 						</li>
@@ -204,7 +240,13 @@
 	</div>
 
 	<!-- Map -->
-	<WorldMap {airports} departure={mapDeparture} arrival={mapArrival} {selecting} on:select={onMapSelect} />
+	<WorldMap {airports} departure={mapDeparture} arrival={mapArrival} bind:selecting on:select={onMapSelect} />
+
+	{#if routeSummary}
+		<p class="rounded-lg bg-indigo-950/50 border border-indigo-900 text-indigo-200 text-sm px-3 py-2.5 flex items-center gap-2">
+			<span aria-hidden="true">🌐</span>{routeSummary}
+		</p>
+	{/if}
 
 	<!-- Dates -->
 	<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

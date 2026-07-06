@@ -16,11 +16,13 @@ to the destination timezone with the least disruption.
 - **Direction-aware guidance** — light-seek/avoid windows and melatonin timing follow the chosen
   shift direction (evening melatonin to advance, morning melatonin to delay).
 - **Round trips** — generates an outbound and a return leg, each re-adapting to the right timezone.
-- **Location picker** — choose airports on an interactive world map, by city/airport-code
-  autocomplete, or by **flight number** (live lookup when an API key is configured, graceful manual
-  fallback otherwise).
-- **Reminders** — export the whole plan to your **calendar (.ics)** with per-event alarms, or enable
-  **browser notifications** for windows in the next 24 h.
+- **Location picker** — choose airports on an interactive world map (real Natural Earth geometry,
+  forgiving nearest-city taps on mobile), by city/airport-code autocomplete, or by **flight
+  number** (live lookup when an API key is configured, graceful manual fallback otherwise). Your
+  home airport is preselected from your device timezone.
+- **Reminders & exports** — **calendar (.ics)** with per-event alarms, **browser notifications**
+  for windows in the next 24 h, plus **CSV**, **JSON**, and a **printable / PDF** day-by-day view.
+- **Mobile-first UI** — no horizontal scroll, 44 px touch targets, scrollable day tabs.
 
 ## Tech
 

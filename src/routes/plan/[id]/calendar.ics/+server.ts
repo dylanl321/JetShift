@@ -1,17 +1,11 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { itineraryCalendarEvents, type Itinerary, type CircadianPlan } from '$lib/circadian.js';
+import {
+	itineraryCalendarEvents,
+	normalizeStoredItinerary,
+	type Itinerary
+} from '$lib/circadian.js';
 import { buildIcs } from '$lib/ics.js';
-
-/** Normalize a stored plan_json (legacy single plan OR new itinerary) into an Itinerary. */
-function asItinerary(json: string): Itinerary {
-	const parsed = JSON.parse(json);
-	if (parsed && typeof parsed === 'object' && 'outbound' in parsed) {
-		return parsed as Itinerary;
-	}
-	// Legacy: a bare CircadianPlan.
-	return { version: 1, roundTrip: false, outbound: parsed as CircadianPlan, return: null };
-}
 
 export const GET: RequestHandler = async ({ params, platform }) => {
 	const db = platform?.env?.DB ?? null;
@@ -30,7 +24,7 @@ export const GET: RequestHandler = async ({ params, platform }) => {
 
 	let itin: Itinerary;
 	try {
-		itin = asItinerary(row.plan_json);
+		itin = normalizeStoredItinerary(row.plan_json);
 	} catch {
 		error(500, 'Stored plan is corrupted.');
 	}

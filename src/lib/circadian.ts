@@ -472,3 +472,15 @@ export function serializeItinerary(itin: Itinerary): string {
 export function deserializeItinerary(json: string): Itinerary {
 	return JSON.parse(json) as Itinerary;
 }
+
+/**
+ * Normalize stored plan_json into an Itinerary, accepting both the current Itinerary shape and
+ * the legacy bare CircadianPlan rows. Throws on unparseable JSON.
+ */
+export function normalizeStoredItinerary(json: string): Itinerary {
+	const parsed = JSON.parse(json);
+	if (parsed && typeof parsed === 'object' && 'outbound' in parsed) {
+		return parsed as Itinerary;
+	}
+	return { version: 1, roundTrip: false, outbound: parsed as CircadianPlan, return: null };
+}
