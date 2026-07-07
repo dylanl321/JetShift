@@ -42,7 +42,11 @@
 
 	function fmt(m: number): string {
 		const total = ((m % 1440) + 1440) % 1440;
-		return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(Math.round(total % 60)).padStart(2, '0')}`;
+		const h = Math.floor(total / 60);
+		const min = Math.round(total % 60);
+		const ampm = h >= 12 ? 'PM' : 'AM';
+		const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+		return `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
 	}
 
 	function windowWraps(win: TimeWindow): boolean {

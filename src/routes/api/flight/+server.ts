@@ -89,6 +89,7 @@ export const GET: RequestHandler = async ({ url, platform, fetch }) => {
 				dep_time?: string;
 				arr_time?: string;
 				duration?: number;
+				days?: string[];
 			}>;
 		};
 
@@ -140,9 +141,10 @@ export const GET: RequestHandler = async ({ url, platform, fetch }) => {
 			flight: flightRaw,
 			departure,
 			arrival,
-			duration: route.duration,
-			dep_time: route.dep_time,
-			arr_time: route.arr_time
+			duration: route.duration ?? null,
+			dep_time: route.dep_time ?? null,
+			arr_time: route.arr_time ?? null,
+			days: route.days ?? null
 		});
 	} catch (e) {
 		return json({

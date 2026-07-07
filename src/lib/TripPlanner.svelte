@@ -115,8 +115,19 @@
 				to = arr;
 				fromQuery = `${dep.city} (${dep.iata})`;
 				toQuery = `${arr.city} (${arr.iata})`;
+
+				// Auto-fill departure datetime from flight schedule
+				if (data.dep_time) {
+					const nextDate = getNextFlightDate(data.days);
+					departureDatetime = `${nextDate}T${data.dep_time}`;
+				}
+
+				const parts = [];
+				parts.push(`${dep.city} → ${arr.city}`);
+				if (data.dep_time) parts.push(`departs ${formatTime12h(data.dep_time)}`);
+				if (data.duration) parts.push(`${Math.floor(data.duration / 60)}h${data.duration % 60 > 0 ? ` ${data.duration % 60}m` : ''} flight`);
 				flightState = 'ok';
-				flightMsg = `Found ${dep.city} → ${arr.city}.`;
+				flightMsg = parts.join(' · ');
 			} else {
 				flightState = 'error';
 				flightMsg = data.reason ?? 'Could not resolve that flight.';
@@ -125,6 +136,52 @@
 			flightState = 'error';
 			flightMsg = 'Lookup failed. Pick your airports on the map instead.';
 		}
+	}
+
+	/** Convert "HH:MM" 24h to 12h AM/PM format */
+	function formatTime12h(time24: string): string {
+		const [h, m] = time24.split(':').map(Number);
+		const ampm = h >= 12 ? 'PM' : 'AM';
+		const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+		return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+	}
+
+	/** Find the next date this flight operates (based on days array from AirLabs) */
+	function getNextFlightDate(days: string[] | null): string {
+		const now = new Date();
+		const dayMap: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+		if (!days || days.length === 0) {
+			// No schedule info — default to tomorrow
+			now.setDate(now.getDate() + 1);
+		} else {
+			const today = now.getDay();
+			const validDays = days.map(d => dayMap[d.toLowerCase()]).filter(d => d !== undefined).sort((a, b) => a - b);
+			let found = false;
+			for (let offset = 0; offset <= 7; offset++) {
+				const target = (today + offset) % 7;
+				if (validDays.includes(target)) {
+					now.setDate(now.getDate() + offset);
+					// If it's today but the flight already departed, skip to next occurrence
+					if (offset === 0) {
+						now.setDate(now.getDate() + 7);
+						for (let o2 = 1; o2 <= 7; o2++) {
+							const t2 = (today + o2) % 7;
+							if (validDays.includes(t2)) {
+								now.setDate(new Date().getDate() + o2);
+								break;
+							}
+						}
+					}
+					found = true;
+					break;
+				}
+			}
+			if (!found) now.setDate(now.getDate() + 1);
+		}
+		const y = now.getFullYear();
+		const mo = (now.getMonth() + 1).toString().padStart(2, '0');
+		const da = now.getDate().toString().padStart(2, '0');
+		return `${y}-${mo}-${da}`;
 	}
 
 	$: mapDeparture = from?.iata ?? null;
